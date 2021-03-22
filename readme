@@ -53,7 +53,7 @@ d, the distance between D(x,y) between x and y is computed as follows.
         / (sum_(i=1)^(min_t) (tag_multiplier)^(min_t - 1))
     which is again between 0 and 1.
 - This distance between x and y is increased by same_institute_penalty if x and
-    y are in the same institute.
+    y are in the same institute, unless x = y.
 Note that, by construction, anyone has distance 0 to themselves.
     
 Once the distance matrix between people is determined, the assignment of
