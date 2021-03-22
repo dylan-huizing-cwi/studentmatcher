@@ -13,10 +13,9 @@ The code was built for a student matching event, but should work for any Zoom
 meeting in which participants should be divided into break-out rooms according
 to interests. The output is a break-out room per person, along with the top
 three topics for that room.
-
 USAGE:
 1. Tell participants to fill out their details in an online spreadsheet,
-    formatted like 'anonymous example.csv'. You can propose a list of topics to
+    formatted like 'exampleinput.csv'. You can propose a list of topics to
     choose from, but this is not binding: the code will match strings that
     look similar.
 2. Download that spreadsheet as a csv. Point the parameter 'standard_in' to
@@ -60,7 +59,7 @@ d, the distance between D(x,y) between x and y is computed as follows.
         / (sum_(i=1)^(min_t) (tag_multiplier)^(min_t - 1))
     which is again between 0 and 1.
 - This distance between x and y is increased by same_institute_penalty if x and
-    y are in the same institute.
+    y are in the same institute, unless x = y.
 Note that, by construction, anyone has distance 0 to themselves.
     
 Once the distance matrix between people is determined, the assignment of
@@ -78,13 +77,11 @@ sum_(i,b) x(i,b) >= min_per_room, (forall b) (3)
 x(i,b) + x(j,b) <= y(i,j) + 1, (forall i, j, b) (4)
 x(i,b) = 1, (forall fixed assignments (i,b) in preassigned_room)
 x(i,b) in {0,1}, y(i,j) in {0,1}
-
 Constraint (1) states that everyone should get exactly one room.
 Constraint (2) states that a room can receive no more than max_per_room
     participants, and (3) states that it should get no less than min_per_room.
 Constraint (4) activates y(i,j) when i and j are assigned to the same room.
 Constraint (5) enacts the preassigned room assignments.
-
 The variables y(i,j) might as well be continuous, but they're left binary for
 clarity.
 
