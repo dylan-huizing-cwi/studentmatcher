@@ -1,0 +1,80 @@
+This code is intended to assign students with similar research interests to
+Zoom break-out rooms, so they can meet. If two students are from the same
+institute, they probably already know each other, and putting them in the same
+break-out room should be penalised. The meeting host is assigned to 'room 0', 
+the main Zoom-room: this is so participants always know where to find the host. 
+The code was built for a student matching event, but should work for any Zoom
+meeting in which participants should be divided into break-out rooms according
+to interests. The output is a break-out room per person, along with the top
+three topics for that room.
+USAGE:
+1. Tell participants to fill out their details in an online spreadsheet,
+    formatted like 'exampleinput.csv'. You can propose a list of topics to
+    choose from, but this is not binding: the code will match strings that
+    look similar.
+2. Download that spreadsheet as a csv. Point the parameter 'standard_in' to
+    that csv.
+3. Configure the other parameters below, and run the script. If Gurobi is 
+    installed, this may save some computing time.
+4. Read out and share the output-file, probably named 'results.csv'.
+    
+PARAMETERS:
+- same_institute_penalty: Set this to 0 if it is okay for people from the same
+    group to meet, otherwise, leave it at 10 or another high number.
+- min_per_room: Minimum number of people that should be assigned per room.
+- max_per_room: Maximum number of people that should be assigned per room.
+- nr_tags: How many topics/tags you have allowed participants to enter.
+- csv_separator: If you open the csv's with a text editor, which separator 
+    shows up.
+- standard_in: Path to the input csv.
+- standard_out: Path where you would like the output csv to show up.
+- standard_matrix: Path where you would like the distance matrix to show up.
+- nr_shown_themes: How many topics are presented when describing the room.
+- tag_multiplier: For any two people, their best matching tags should hold more
+    weight than the other tags. This factor indicates how many times as
+    important the best match is than the second-best, and the second-best than
+    the third, ...
+- preassigned_room: If you want to prescribe certain people to certain rooms,
+    this dict allows that.
+    
+MATH:
+    
+If person x and person y have entered tag lists t_x and t_y of length at most
+d, the distance between D(x,y) between x and y is computed as follows.
+- A matrix M is compiled of edit distances (between 0 and 1) between strings 
+    in t_x and t_y.
+- A minimum weight bipartite matching is made between t_x and t_y based on M.
+- The distances between matched tags are weighted, summed and normalised. If 
+    min_t is min( len(t_x), len(t_y) ), and t_x and t_y are sorted such that
+    t_x(i) is matched to t_y(i) and 
+    M(t_x(1), t_y(1)) <= M(t_x(2), t_y(2)) <= ...,
+    then we compute
+        (sum_(i=1)^(min_t) (tag_multiplier)^(min_t - 1) M(t_x(i), t_y(i)) ) 
+        / (sum_(i=1)^(min_t) (tag_multiplier)^(min_t - 1))
+    which is again between 0 and 1.
+- This distance between x and y is increased by same_institute_penalty if x and
+    y are in the same institute.
+Note that, by construction, anyone has distance 0 to themselves.
+    
+Once the distance matrix between people is determined, the assignment of
+participants to break-out rooms is computed with the following integer linear
+program:
+    
+x(i,b) in {0,1}: whether student i is assigned to break-out room b
+y(i,j) in {0,1}: whether students i and j are in the same break-out room
+    
+min sum_(i,j) D(i,j) * y(i,j)
+s.t. 
+sum_(i,b) x(i,b) = 1, (forall i) (1)
+sum_(i,b) x(i,b) <= max_per_room, (forall b) (2)
+sum_(i,b) x(i,b) >= min_per_room, (forall b) (3)
+x(i,b) + x(j,b) <= y(i,j) + 1, (forall i, j, b) (4)
+x(i,b) = 1, (forall fixed assignments (i,b) in preassigned_room)
+x(i,b) in {0,1}, y(i,j) in {0,1}
+Constraint (1) states that everyone should get exactly one room.
+Constraint (2) states that a room can receive no more than max_per_room
+    participants, and (3) states that it should get no less than min_per_room.
+Constraint (4) activates y(i,j) when i and j are assigned to the same room.
+Constraint (5) enacts the preassigned room assignments.
+The variables y(i,j) might as well be continuous, but they're left binary for
+clarity.
